@@ -5,7 +5,7 @@ import pytesseract
 
 # Converte o arquivo pdf em imagem
 
-path_pdf = "./Untitled_05212024_134727.pdf"
+path_pdf = "pdf-script/Untitled_05212024_134727.pdf"
 pages = convert_from_path(path_pdf)
 
 # Função de pré-processamento das imagens
