@@ -45,4 +45,4 @@ for page in pages:
     text = extract_text_from_image(preprocessed_image)
     extracted_text.append(text)
 
-print(text)
+
