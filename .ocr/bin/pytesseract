@@ -1,4 +1,4 @@
-#!/home/caio/workspace/psswd-sender/.ocr/bin/python3
+#!/home/caio/workspace/pdf-modifier/.ocr/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

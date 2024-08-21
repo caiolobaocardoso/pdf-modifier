@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/caio/workspace/psswd-sender/.ocr"
+set -gx VIRTUAL_ENV "/home/caio/workspace/pdf-modifier/.ocr"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

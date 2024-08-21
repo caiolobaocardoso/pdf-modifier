@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/home/caio/workspace/psswd-sender/.ocr"
+VIRTUAL_ENV="/home/caio/workspace/pdf-modifier/.ocr"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
