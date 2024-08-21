@@ -1,48 +1,44 @@
-from pdf2image import convert_from_path
-import cv2
-import numpy as np
+import streamlit as st
 import pytesseract
+from pdf2image import convert_from_bytes
+from PIL import Image
+import io
+import re
 
-# Converte o arquivo pdf em imagem
+def perform_ocr(image):
+    return pytesseract.image_to_string(image)
 
-path_pdf = "pdf-modifier/Untitled_06242024_100609.pdf"
-pages = convert_from_path(path_pdf)
-
-# Função de pré-processamento das imagens
-
-def deskew(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bitwise_not(gray)
-    coords = np.column_stack(np.where(gray > 0))
-    angle = cv2.minAreaRect(coords)[-1]
+def extract_info(text):
+    name_match = re.search(r'Nome\s+(.*?)\s+E-mail', text, re.IGNORECASE | re.DOTALL)
+    email_match = re.search(r'E-mail\s+(.*?)$', text, re.IGNORECASE | re.MULTILINE)
     
-    if angle < -45:
-        angle = -(90 + angle)
-    else:
-        angle = -angle
+    name = name_match.group(1).strip() if name_match else "Not found"
+    email = email_match.group(1).strip() if email_match else "Not found"
+    
+    return name, email
 
-    (h, w) = image.shape[:2]
-    center = (w // 2, h // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+def main():
+    st.title("PDF OCR Extractor")
+    uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
-    return rotated
+    if uploaded_file is not None:
+        images = convert_from_bytes(uploaded_file.read())
+        full_text = ""
+        for i, image in enumerate(images):
+            st.subheader(f"Page {i+1}")
+            
+            st.image(image, caption=f"Page {i+1}", use_column_width=True)
+            
+            text = perform_ocr(image)
+            full_text += text + "\n\n"
+            
+            st.text_area(f"Extracted Text - Page {i+1}", text, height=250)
 
-#Realiza processo de OCR nas imagens processadas
+        name, email = extract_info(full_text)
 
-def extract_text_from_image(image):
-    text = pytesseract.image_to_string(image)
-    return text
+        st.subheader("Extracted Information")
+        st.write(f"Name: {name}")
+        st.write(f"Email: {email}")
 
-#Lista que irá armazenar o conteúdo do texto
-extracted_text = []
-
-for page in pages:
-    #Realiza o pré-processamento das imagens
-    preprocessed_image = deskew(np.array(page))
-
-    # Extração do texto usando OCR
-    text = extract_text_from_image(preprocessed_image)
-    extracted_text.append(text)
-
-
+if __name__ == "__main__":
+    main()

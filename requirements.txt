@@ -1,5 +1,4 @@
-pdf2image
+streamlit
 pytesseract
-opencv-python
-pandas
-pypdf2
+pdf2image
+pillow
