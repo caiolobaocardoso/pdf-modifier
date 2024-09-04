@@ -1,48 +1,108 @@
-from pdf2image import convert_from_path
-import cv2
-import numpy as np
+import streamlit as st
 import pytesseract
+from pdf2image import convert_from_bytes
+from PIL import Image
+import re
+from datetime import date
+import base64
 
-# Converte o arquivo pdf em imagem
+def base_64_background(background):
+    with open(background, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
-path_pdf = "pdf-modifier/Untitled_06242024_100609.pdf"
-pages = convert_from_path(path_pdf)
+def set_background(png_file):
+    bin_str = base_64_background(png_file)
+    page_bg_img = f'''
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{bin_str}");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    '''
+    st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# Função de pré-processamento das imagens
+def perform_ocr(image):
+    return pytesseract.image_to_string(image)
 
-def deskew(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bitwise_not(gray)
-    coords = np.column_stack(np.where(gray > 0))
-    angle = cv2.minAreaRect(coords)[-1]
+def extract_info(text):
+    name_match = re.search(r'Nome\s+(.*?)\s+E-mail', text, re.IGNORECASE | re.DOTALL)
+    id_match = re.search(r'ID\s+(.*?)\s+Cargo', text, re.IGNORECASE | re.DOTALL)
     
-    if angle < -45:
-        angle = -(90 + angle)
-    else:
-        angle = -angle
+    name = name_match.group(1).strip() if name_match else "Not found"
+    id_value = id_match.group(1).strip() if id_match else "Not found"
 
-    (h, w) = image.shape[:2]
-    center = (w // 2, h // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    return name, id_value
 
-    return rotated
+def process_file(uploaded_file):
+    images = convert_from_bytes(uploaded_file.read())
+    full_text = ""
+    for i, image in enumerate(images):
+        st.subheader(f"Página {i+1} - {uploaded_file.name}")
+        st.image(image, caption=f"Página {i+1}", use_column_width=True)
+        
+        text = perform_ocr(image)
+        full_text += text + "\n\n"
+        
+        st.text_area(f"Texto Extraído - Página {i+1} - {uploaded_file.name}", text, height=250)
 
-#Realiza processo de OCR nas imagens processadas
+    name, id_value = extract_info(full_text)
 
-def extract_text_from_image(image):
-    text = pytesseract.image_to_string(image)
-    return text
+    st.subheader(f"Informações Extraídas - {uploaded_file.name}")
+    st.write(f"Nome: {name}")
+    st.write(f'ID: {id_value}')
+    
+    data = date.today()
+    new_file_name = f'{name}-{id_value}-{data}.pdf'
+    
+    st.download_button(
+        label=f"Baixar PDF Renomeado - {uploaded_file.name}",
+        data=uploaded_file.getvalue(),
+        file_name=new_file_name,
+        mime="application/pdf"
+    )
 
-#Lista que irá armazenar o conteúdo do texto
-extracted_text = []
+def main():
 
-for page in pages:
-    #Realiza o pré-processamento das imagens
-    preprocessed_image = deskew(np.array(page))
+    st.set_page_config(page_title="Extrator de PDF", page_icon="📄", layout="wide")
+    
+    set_background('background.jpg')
+    
+    st.markdown("""
+    <style>
+        .main-title {
+            color: #8E24AA;
+            text-align: center;
+            padding-top: 20px;
+            margin-bottom: 30px;
+        }
+        .stButton>button {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        .stTextInput>div>div>input {
+            background-color: #ffffff;
+        }
+        .css-1d391kg {
+            background-color: rgba(255, 255, 255, 0.85);
+            padding: 2rem;
+            border-radius: 10px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # Extração do texto usando OCR
-    text = extract_text_from_image(preprocessed_image)
-    extracted_text.append(text)
+    st.markdown("<h1 class='main-title'>Extrator de PDF</h1>", unsafe_allow_html=True)
 
+    
+    uploaded_files = st.file_uploader("Escolha um ou mais arquivos PDF", type="pdf", accept_multiple_files=True)
 
+    if uploaded_files is not None:
+        for uploaded_file in uploaded_files:
+            process_file(uploaded_file)
+
+if __name__ == "__main__":
+    main()
